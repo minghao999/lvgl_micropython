@@ -121,27 +121,31 @@ jobs:
     # 9. 收集固件到统一目录
     - name: 9.重命名并收集所有固件到 ~/artifacts
       run: |
-        # 定义最终存放固件的目录，固定放到 $HOME/artifacts
+        # 定义最终存放固件的目录
         ARTIFACTS_DIR="$HOME/artifacts"
-        mkdir -p "$ARTIFACTS_DIR"  # 如果目录不存在则自动创建
-        # 拼出 ESP-IDF 实际编译输出目录的前缀
+        mkdir -p "$ARTIFACTS_DIR"
+        
+        # 在 micropython/ports/esp32 目录下查找 firmware.bin
         BUILD_DIR="${{ github.workspace }}/lib/micropython/ports/esp32"
-        # 拼出构建目录名：board 与可选 variant 用 “-” 连接
-        BOARD_NAME="${{ matrix.board }}"
-        [[ -n "${{ matrix.variant }}" ]] && BOARD_NAME+="-${{ matrix.variant }}"
-        # 计算固件真正所在路径
-        FW_PATH="${BUILD_DIR}/build-${BOARD_NAME}/firmware.bin"  
         
-        # 组合最终文件名：板型_可选variant_FlashMB_显示_触摸.bin
-        OUT_NAME="lvgl_mpy_${{ matrix.board }}${{ matrix.variant && format('_{0}', matrix.variant) || '' }}_${{ matrix.flash_size }}MB${{ matrix.display && format('_{0}', matrix.display) || '' }}${{ matrix.indev && format('_{0}', matrix.indev) || '' }}.bin"
+        # 使用 find 查找固件文件
+        FW_PATH=$(find "$BUILD_DIR" -maxdepth 2 -name "firmware.bin" -type f | head -1)
         
-        # 如果固件存在则复制并重命名；不存在则报错退出
-        if [[ -f "$FW_PATH" ]]; then          
-          cp "$FW_PATH" "$ARTIFACTS_DIR/$OUT_NAME"
-        else
-          echo "Firmware not found at $FW_PATH"
+        # 如果没找到，报错退出
+        if [[ -z "$FW_PATH" ]]; then
+          echo "错误：找不到 firmware.bin 文件"
+          echo "请检查编译步骤是否成功"
           exit 1
         fi
+        
+        echo "找到固件：$FW_PATH"
+        
+        # 生成输出文件名
+        OUT_NAME="lvgl_mpy_${{ matrix.board }}${{ matrix.variant && format('_{0}', matrix.variant) || '' }}_${{ matrix.flash_size }}MB${{ matrix.display && format('_{0}', matrix.display) || '' }}${{ matrix.indev && format('_{0}', matrix.indev) || '' }}.bin"
+        
+        # 复制并重命名
+        cp "$FW_PATH" "$ARTIFACTS_DIR/$OUT_NAME"
+        echo "固件已保存为：$ARTIFACTS_DIR/$OUT_NAME"
 
     # 10. 上传构建产物
     - name: 10.上传重命名后的固件到 GitHub Actions 产物区
