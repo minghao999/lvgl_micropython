@@ -16,7 +16,7 @@ jobs:
             variant: SPIRAM_OCT
             flash_size: 16
             display: st7789
-            indev: cst816
+            indev: cst816s
 
     steps:
     # 1. 检出源码
