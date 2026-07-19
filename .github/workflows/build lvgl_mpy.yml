@@ -107,6 +107,21 @@ jobs:
         echo "===== 查找 tinyusb ====="
         find . -name "*tinyusb*"
 
+        echo "===== managed_components ====="
+        
+        find . -name managed_components
+        
+        echo "===== dependencies.lock ====="
+        find . -name dependencies.lock
+        
+        echo "===== tinyusb component ====="
+        find . -path "*managed_components*" -name "*tinyusb*"
+        
+        echo "===== build log ====="
+        grep -n "tinyusb" build.log || true
+        grep -n "Processing dependencies" build.log || true
+        grep -n "managed_components" build.log || true
+
     # 8. 构建固件
     - name: 8.使用 make.py 编译指定板型/Flash/显示/触摸配置
       run: |
@@ -118,7 +133,7 @@ jobs:
         opts+=("DISPLAY=${{ matrix.display }}")
         [[ -n "${{ matrix.indev }}" ]] && opts+=("INDEV=${{ matrix.indev }}")
         # 调用 make.py 进行编译
-        python3 make.py esp32 "${opts[@]}"
+        python3 make.py esp32 "${opts[@]}" 2>&1 | tee build.log
 
     # 9. 收集固件到统一目录
     - name: 9.重命名并收集所有固件到 ~/artifacts
