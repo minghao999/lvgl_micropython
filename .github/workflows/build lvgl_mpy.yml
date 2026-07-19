@@ -90,38 +90,7 @@ jobs:
       env:
         IDF_PATH: ${{ github.workspace }}/lib/esp-idf
 
-    - name: 7.5查看 ESP-IDF 与 MicroPython 信息
-      run: |
-        echo "===== ESP-IDF Commit ====="
-        git -C lib/esp-idf rev-parse HEAD
     
-        echo "===== MicroPython Commit ====="
-        git -C lib/micropython rev-parse HEAD
-    
-        echo "===== ESP-IDF Version ====="
-        cat lib/esp-idf/tools/cmake/version.cmake
-    
-        echo "===== 查找 managed_components ====="
-        find . -name managed_components
-    
-        echo "===== 查找 tinyusb ====="
-        find . -name "*tinyusb*"
-
-        echo "===== managed_components ====="
-        
-        find . -name managed_components
-        
-        echo "===== dependencies.lock ====="
-        find . -name dependencies.lock
-        
-        echo "===== tinyusb component ====="
-        find . -path "*managed_components*" -name "*tinyusb*"
-        
-        echo "===== build log ====="
-        grep -n "tinyusb" build.log || true
-        grep -n "Processing dependencies" build.log || true
-        grep -n "managed_components" build.log || true
-
     # 8. 构建固件
     - name: 8.使用 make.py 编译指定板型/Flash/显示/触摸配置
       run: |
@@ -134,6 +103,23 @@ jobs:
         [[ -n "${{ matrix.indev }}" ]] && opts+=("INDEV=${{ matrix.indev }}")
         # 调用 make.py 进行编译
         python3 make.py esp32 "${opts[@]}" 2>&1 | tee build.log
+
+    # 8.5 查看下载的组件版本
+    - name: 8.5 查看 Component Manager 下载的版本
+      if: always()
+      run: |
+        echo "===== managed_components ====="
+        find lib/micropython/ports/esp32/managed_components -type f
+    
+        echo "===== 所有 idf_component.yml ====="
+        find lib/micropython/ports/esp32/managed_components -name "idf_component.yml" \
+          -exec echo "----- {} -----" \; \
+          -exec cat {} \;
+    
+        echo "===== dependencies.lock ====="
+        find lib/micropython/ports/esp32 -name "dependencies.lock" \
+          -exec echo "----- {} -----" \; \
+          -exec cat {} \;
 
     # 9. 收集固件到统一目录
     - name: 9.重命名并收集所有固件到 ~/artifacts
